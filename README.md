@@ -35,7 +35,7 @@
 
 本專案為純前端無後端架構，無需安裝任何依賴套件。
 
-1. **線上直接體驗**：造訪 [Assemblage Live Demo](https://你的GitHub帳號.github.io/專案名稱/)
+1. **線上直接體驗**：造訪 [Assemblage Live Demo](https://fuuhakugetsurei.github.io/Assemblage/)
 2. **本地執行**：
    ```bash
    git clone https://github.com/fuuhakugetsurei/Assemblage.git
