@@ -38,7 +38,7 @@
 1. **線上直接體驗**：造訪 [Assemblage Live Demo](https://你的GitHub帳號.github.io/專案名稱/)
 2. **本地執行**：
    ```bash
-   git clone [https://github.com/你的GitHub帳號/time-block-schedule.git](https://github.com/你的GitHub帳號/time-block-schedule.git)
+   git clone https://github.com/fuuhakugetsurei/Assemblage.git
    cd time-block-schedule
    # 直接使用瀏覽器開啟 index.html 即可
 
