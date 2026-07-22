@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Assemblage</title>
+    <style>
+        :root {
+            --bg-color: #f5f6fa;
+            --panel-bg: #ffffff;
+            --border-color: #dcdde1;
+            --hour-height: 40px; 
+            --header-height: 40px;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            gap: 15px;
+            height: 100vh;
+            box-sizing: border-box;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        /* 手機端版面配置優化 */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+                padding: 10px;
+                gap: 10px;
+            }
+            #block-pool {
+                width: 100% !important;
+                height: 220px !important;
+            }
+            #timeline {
+                flex-grow: 1;
+                height: calc(100vh - 250px);
+            }
+            /* 手機端顯示頁籤，並切換為單日顯示 */
+            .day-tabs {
+                display: flex !important;
+            }
+            .week-grid {
+                grid-template-columns: 1fr !important; /* 手機一次只顯示單日 */
+                min-width: 0 !important;
+            }
+            .day-column {
+                display: none !important; /* 預設隱藏所有天 */
+            }
+            .day-column.active-day {
+                display: flex !important; /* 只顯示當前選中的天 */
+            }
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            box-sizing: border-box;
+        }
+        #block-pool { width: 280px; flex-shrink: 0; }
+        #timeline { flex-grow: 1; overflow: hidden; }
+        
+        .panel-header-zone {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--bg-color);
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+            flex-shrink: 0;
+        }
+        h2 { margin: 0; color: #2f3640; font-size: 1.1rem; }
+        
+        .sync-btns { display: flex; gap: 4px; }
+        .sync-btns button {
+            padding: 4px 6px;
+            font-size: 0.75rem;
+            border: 1px solid var(--border-color);
+            background: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-clear {
+            background-color: #ff7675 !important;
+            color: white !important;
+            border: none !important;
+            font-weight: bold;
+        }
+
+        /* 手機分頁籤 */
+        .day-tabs {
+            display: none;
+            gap: 2px;
+            margin-bottom: 8px;
+            overflow-x: auto;
+            flex-shrink: 0;
+        }
+        .day-tab {
+            flex: 1;
+            padding: 6px 0;
+            text-align: center;
+            background: #f1f2f6;
+            font-size: 0.8rem;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #57606f;
+        }
+        .day-tab.active {
+            background: #00a8ff;
+            color: white;
+        }
+        
+        .creator-form {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+        }
+        .creator-form input, .creator-form select, .creator-form button {
+            padding: 5px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 0.8rem;
+        }
+        .creator-form button {
+            background-color: #4cd137;
+            color: white;
+            cursor: pointer;
+            border: none;
+            font-weight: bold;
+        }
+
+        .pool-zone {
+            flex-grow: 1;
+            border: 2px dashed var(--border-color);
+            border-radius: 6px;
+            padding: 8px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            height: 0;
+        }
+        
+        .schedule-container {
+            display: flex;
+            flex-grow: 1;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: #fff;
+            position: relative;
+        }
+        .time-labels {
+            width: 45px;
+            flex-shrink: 0;
+            margin-top: var(--header-height);
+            border-right: 1px solid var(--border-color);
+            background: #f8f9fa;
+        }
+        .time-label {
+            height: var(--hour-height);
+            font-size: 0.7rem;
+            color: #718093;
+            text-align: center;
+            line-height: 20px;
+            box-sizing: border-box;
+            border-bottom: 1px dashed #eee;
+        }
+        .week-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            flex-grow: 1;
+            position: relative;
+        }
+        .day-column {
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .day-column:last-child { border-right: none; }
+        .day-header {
+            background-color: #f1f2f6;
+            text-align: center;
+            line-height: var(--header-height);
+            font-weight: bold;
+            color: #57606f;
+            border-bottom: 1px solid var(--border-color);
+            height: var(--header-height);
+            box-sizing: border-box;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .time-zone {
+            flex-grow: 1;
+            position: relative;
+            height: calc(24 * var(--hour-height));
+            background-image: linear-gradient(#f1f2f6 1px, transparent 1px);
+            background-size: 100% var(--hour-height);
+            box-sizing: border-box;
+        }
+        
+        .time-block {
+            color: white;
+            border-radius: 6px;
+            cursor: grab;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 6px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+            flex-shrink: 0;
+            touch-action: none; /* 關鍵：防止手機拖曳時觸發頁面滾動 */
+        }
+
+        /* 手機觸控拖曳時的浮空特效 */
+        .time-block.dragging-touch {
+            position: fixed !important;
+            z-index: 9999 !important;
+            opacity: 0.85;
+            pointer-events: none;
+            transform: scale(1.05);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+
+        .time-zone .time-block { 
+            position: absolute; 
+            left: 4px; 
+            width: calc(100% - 8px); 
+            overflow: hidden;
+            padding: 4px 6px;
+        }
+
+        .time-zone .time-block.h-1 {
+            justify-content: center;
+            gap: 2px;
+        }
+        .time-zone .time-block.h-1 .block-title {
+            font-size: 0.75rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .time-zone .time-block.h-1 .block-time { font-size: 0.65rem; margin-top: 0; }
+
+        .time-block.disabled {
+            background-color: #b2bec3 !important;
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .block-meta { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        .block-time { font-size: 0.7rem; font-weight: normal; opacity: 0.85; }
+        
+        .template-qty-control {
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 4px;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 2px 4px;
+            border-radius: 4px;
+            width: fit-content;
+        }
+        .template-qty-control input {
+            width: 35px;
+            padding: 1px;
+            border: none;
+            border-radius: 3px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.7rem;
+        }
+
+        .delete-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 0.9rem;
+            opacity: 0.7;
+            padding: 0;
+        }
+
+        .h-1 { min-height: calc(1 * var(--hour-height)); }
+        .time-zone .h-1 { height: calc(1 * var(--hour-height)); }
+        .h-2 { min-height: calc(2 * var(--hour-height)); }
+        .time-zone .h-2 { height: calc(2 * var(--hour-height)); }
+        .h-3 { min-height: calc(3 * var(--hour-height)); }
+        .time-zone .h-3 { height: calc(3 * var(--hour-height)); }
+    </style>
+</head>
+<body>
+
+    <!-- 左側：模板積木庫 -->
+    <div id="block-pool" class="panel">
+        <div class="panel-header-zone">
+            <h2>時間積木庫</h2>
+        </div>
+        <div class="creator-form">
+            <input type="text" id="subject" placeholder="科目" style="width: 70px;">
+            <select id="duration" style="width: 50px;">
+                <option value="1">1h</option>
+                <option value="2">2h</option>
+                <option value="3">3h</option>
+            </select>
+            <input type="number" id="qty" placeholder="數量" min="0" value="1" style="width: 50px;">
+            <button onclick="createNewTemplate()">+</button>
+        </div>
+        <div class="pool-zone" id="poolZone">
+            <p style="font-size:0.7rem; color:#aaa; margin:0 0 5px 0; text-align:center; flex-shrink:0;">拖回此處回收數量</p>
+            
+            <div class="time-block h-2" id="tpl-math" style="background-color: #fbc531;" data-hours="2" data-title="數學" data-count="3" data-is-template="true">
+                <div class="block-meta">
+                    <span class="block-title">數學 (2h)</span>
+                    <button class="delete-btn" onclick="deleteTemplateElement(this)">×</button>
+                </div>
+                <div class="template-qty-control">
+                    <span>數量:</span>
+                    <input type="number" min="0" value="3" onchange="handleTemplateQtyChange(this)">
+                </div>
+            </div>
+            <div class="time-block h-1" id="tpl-english" style="background-color: #00a8ff;" data-hours="1" data-title="英文" data-count="1" data-is-template="true">
+                <div class="block-meta">
+                    <span class="block-title">英文 (1h)</span>
+                    <button class="delete-btn" onclick="deleteTemplateElement(this)">×</button>
+                </div>
+                <div class="template-qty-control">
+                    <span>數量:</span>
+                    <input type="number" min="0" value="1" onchange="handleTemplateQtyChange(this)">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右側：排程表 -->
+    <div id="timeline" class="panel">
+        <div class="panel-header-zone">
+            <h2>時間畫布</h2>
+            <div class="sync-btns">
+                <button class="btn-clear" onclick="clearSchedule()">🧹 清除</button>
+                <button onclick="exportData()">📤 匯出</button>
+                <button onclick="importData()">📥 匯入</button>
+            </div>
+        </div>
+
+        <!-- 手機端星期頁籤 -->
+        <div class="day-tabs" id="dayTabs"></div>
+
+        <div class="schedule-container">
+            <div class="time-labels"></div>
+            <div class="week-grid" id="weekGrid"></div>
+        </div>
+    </div>
+
+    <script>
+        const colors = ['#00a8ff', '#fbc531', '#e84118', '#9c88ff', '#4cd137', '#487eb0'];
+        const HOUR_HEIGHT = 40;
+        const dayIds = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+        const days = ['一', '二', '三', '四', '五', '六', '日'];
+        let activeMobileDay = 'mon';
+
+        // 初始化時間軸
+        const labelsContainer = document.querySelector('.time-labels');
+        for (let i = 0; i < 24; i++) {
+            labelsContainer.innerHTML += `<div class="time-label">${String(i).padStart(2, '0')}:00</div>`;
+        }
+
+        // 初始化畫布與手機頁籤
+        const gridContainer = document.getElementById('weekGrid');
+        const tabsContainer = document.getElementById('dayTabs');
+
+        dayIds.forEach((dayId, idx) => {
+            // 畫布欄位
+            const activeClass = idx === 0 ? 'active-day' : '';
+            gridContainer.innerHTML += `
+                <div class="day-column ${activeClass}" id="col-${dayId}">
+                    <div class="day-header">週${days[idx]}</div>
+                    <div class="time-zone" id="zone-${dayId}"></div>
+                </div>
+            `;
+
+            // 手機切換頁籤
+            tabsContainer.innerHTML += `
+                <div class="day-tab ${idx === 0 ? 'active' : ''}" onclick="switchMobileDay('${dayId}', this)">週${days[idx]}</div>
+            `;
+        });
+
+        function switchMobileDay(dayId, tabElem) {
+            activeMobileDay = dayId;
+            document.querySelectorAll('.day-tab').forEach(t => t.classList.remove('active'));
+            tabElem.classList.add('active');
+
+            document.querySelectorAll('.day-column').forEach(c => c.classList.remove('active-day'));
+            document.getElementById(`col-${dayId}`).classList.add('active-day');
+        }
+
+        // ================= 跨平台拖曳引擎 (Mouse + Touch) =================
+
+        let touchDragElem = null;
+        let touchCloneElem = null;
+        let touchOffsetY = 0;
+
+        function attachDragEvents(elem) {
+            // HTML5 原生 Mouse 拖曳
+            elem.draggable = true;
+            elem.ondragstart = (ev) => {
+                ev.dataTransfer.setData("text/plain", ev.target.id);
+                const rect = ev.target.getBoundingClientRect();
+                ev.dataTransfer.setData("offsetY", ev.clientY - rect.top);
+            };
+
+            // 手機 Touch 觸控手勢綁定
+            elem.addEventListener('touchstart', handleTouchStart, { passive: false });
+        }
+
+        function handleTouchStart(e) {
+            const targetBlock = e.currentTarget;
+            if (targetBlock.classList.contains('disabled')) return;
+
+            const touch = e.touches[0];
+            const rect = targetBlock.getBoundingClientRect();
+            touchOffsetY = touch.clientY - rect.top;
+
+            touchDragElem = targetBlock;
+            
+            // 建立懸浮跟隨手勢的視覺影分身
+            touchCloneElem = targetBlock.cloneNode(true);
+            touchCloneElem.classList.add('dragging-touch');
+            touchCloneElem.style.width = rect.width + 'px';
+            touchCloneElem.style.height = rect.height + 'px';
+            touchCloneElem.style.left = touch.clientX - (rect.width / 2) + 'px';
+            touchCloneElem.style.top = touch.clientY - touchOffsetY + 'px';
+            document.body.appendChild(touchCloneElem);
+
+            document.addEventListener('touchmove', handleTouchMove, { passive: false });
+            document.addEventListener('touchend', handleTouchEnd);
+        }
+
+        function handleTouchMove(e) {
+            if (!touchCloneElem) return;
+            e.preventDefault(); // 防止拖曳時網頁被滾動
+            const touch = e.touches[0];
+            const rect = touchCloneElem.getBoundingClientRect();
+            touchCloneElem.style.left = touch.clientX - (rect.width / 2) + 'px';
+            touchCloneElem.style.top = touch.clientY - touchOffsetY + 'px';
+        }
+
+        function handleTouchEnd(e) {
+            if (!touchDragElem || !touchCloneElem) return;
+
+            const touch = e.changedTouches[0];
+            touchCloneElem.remove(); // 銷毀跟隨影分身
+            touchCloneElem = null;
+
+            // 判斷放手位置落在落在哪個 TimeZone 或 PoolZone
+            const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (dropTarget) {
+                const timeZone = dropTarget.closest('.time-zone');
+                const poolZone = dropTarget.closest('.pool-zone');
+
+                if (timeZone) {
+                    processDrop(touchDragElem, timeZone, touch.clientY);
+                } else if (poolZone && touchDragElem.getAttribute('data-is-template') !== 'true') {
+                    recycleInstanceBlock(touchDragElem);
+                }
+            }
+
+            touchDragElem = null;
+            document.removeEventListener('touchmove', handleTouchMove);
+            document.removeEventListener('touchend', handleTouchEnd);
+        }
+
+        // 桌上型滑鼠 Dropping 處理
+        document.querySelectorAll('.time-zone').forEach(zone => {
+            zone.ondragover = (ev) => ev.preventDefault();
+            zone.ondrop = (ev) => {
+                ev.preventDefault();
+                const id = ev.dataTransfer.getData("text/plain");
+                const offsetY = parseFloat(ev.dataTransfer.getData("offsetY") || 0);
+                const draggedElement = document.getElementById(id);
+                if (draggedElement) processDrop(draggedElement, zone, ev.clientY, offsetY);
+            };
+        });
+
+        document.getElementById('poolZone').ondragover = (ev) => ev.preventDefault();
+        document.getElementById('poolZone').ondrop = (ev) => {
+            ev.preventDefault();
+            const id = ev.dataTransfer.getData("text/plain");
+            const draggedElement = document.getElementById(id);
+            if (draggedElement && draggedElement.getAttribute('data-is-template') !== 'true') {
+                recycleInstanceBlock(draggedElement);
+            }
+        };
+
+        // 核心放置邏輯計算
+        function processDrop(draggedElement, timeZone, clientY, offsetY = touchOffsetY) {
+            if (draggedElement.classList.contains('disabled')) return;
+
+            const zoneRect = timeZone.getBoundingClientRect();
+            let relativeY = clientY - zoneRect.top - offsetY;
+
+            let targetHour = Math.round(relativeY / HOUR_HEIGHT);
+            targetHour = Math.max(0, Math.min(24 - parseInt(draggedElement.getAttribute('data-hours')), targetHour));
+            
+            const topPosition = targetHour * HOUR_HEIGHT;
+
+            if (draggedElement.getAttribute('data-is-template') === 'true') {
+                const title = draggedElement.getAttribute('data-title');
+                const hours = draggedElement.getAttribute('data-hours');
+                let count = parseInt(draggedElement.getAttribute('data-count'), 10);
+                
+                if (count <= 0) return; 
+
+                count--;
+                draggedElement.setAttribute('data-count', count);
+                updateTemplateUI(draggedElement);
+
+                draggedElement = createInstanceBlock(title, hours, draggedElement.style.backgroundColor, draggedElement.id);
+            }
+
+            timeZone.appendChild(draggedElement);
+            draggedElement.style.top = `${topPosition}px`;
+            
+            updateBlockTimeText(draggedElement, targetHour);
+            saveToLocalStorage();
+        }
+
+        // ================= 業務邏輯與介面管理 =================
+
+        function handleTemplateQtyChange(inputNode) {
+            const tpl = inputNode.closest('.time-block');
+            let val = parseInt(inputNode.value, 10);
+            if (isNaN(val) || val < 0) val = 0;
+            
+            inputNode.value = val;
+            tpl.setAttribute('data-count', val);
+            updateTemplateUI(tpl);
+            saveToLocalStorage();
+        }
+
+        function updateTemplateUI(tplElement) {
+            const count = parseInt(tplElement.getAttribute('data-count'), 10);
+            const input = tplElement.querySelector('.template-qty-control input');
+            if (input && parseInt(input.value, 10) !== count) {
+                input.value = count;
+            }
+            
+            if (count <= 0) {
+                tplElement.classList.add('disabled');
+                tplElement.draggable = false;
+            } else {
+                tplElement.classList.remove('disabled');
+                tplElement.draggable = true;
+            }
+        }
+
+        function createInstanceBlock(title, hours, color, fromTemplateId, savedTop = null) {
+            const instance = document.createElement('div');
+            instance.className = `time-block h-${hours}`;
+            instance.id = 'inst-' + Date.now() + Math.floor(Math.random()*1000);
+            instance.style.backgroundColor = color;
+            instance.setAttribute('data-hours', hours);
+            instance.setAttribute('data-title', title);
+            instance.setAttribute('data-from-template', fromTemplateId); 
+
+            instance.innerHTML = `
+                <div class="block-meta">
+                    <span class="block-title">${title}</span>
+                    <button class="delete-btn" onclick="recycleInstanceBlock(this.closest('.time-block'))">×</button>
+                </div>
+                <div class="block-time">00:00 - 00:00</div>
+            `;
+
+            attachDragEvents(instance);
+
+            if (savedTop !== null) {
+                instance.style.top = `${savedTop}px`;
+                const targetHour = savedTop / HOUR_HEIGHT;
+                updateBlockTimeText(instance, targetHour);
+            }
+            return instance;
+        }
+
+        function recycleInstanceBlock(instanceElement) {
+            const parentTemplateId = instanceElement.getAttribute('data-from-template');
+            const tpl = document.getElementById(parentTemplateId);
+            
+            if (tpl) {
+                let count = parseInt(tpl.getAttribute('data-count'), 10);
+                count++;
+                tpl.setAttribute('data-count', count);
+                updateTemplateUI(tpl);
+            }
+            instanceElement.remove();
+            saveToLocalStorage();
+        }
+
+        function clearSchedule() {
+            if (!confirm('確定要清空行事曆上的所有排列嗎？（數量會全數回收）')) return;
+            dayIds.forEach(dayId => {
+                const zone = document.getElementById(`zone-${dayId}`);
+                zone.querySelectorAll('.time-block').forEach(block => recycleInstanceBlock(block));
+            });
+        }
+
+        function updateBlockTimeText(block, startHour) {
+            const duration = parseInt(block.getAttribute('data-hours'), 10);
+            const startStr = `${String(startHour).padStart(2, '0')}:00`;
+            const endStr = `${String(startHour + duration).padStart(2, '0')}:00`;
+            block.querySelector('.block-time').innerText = `${startStr} - ${endStr} (${duration}h)`;
+        }
+
+        function deleteTemplateElement(btn) {
+            if (confirm('確定要刪除這個科目模板嗎？')) {
+                btn.closest('.time-block').remove();
+                saveToLocalStorage();
+            }
+        }
+
+        function createNewTemplate(savedTitle = null, savedHours = null, savedCount = null, savedId = null) {
+            const subject = savedTitle || document.getElementById('subject').value.trim();
+            const duration = savedHours || document.getElementById('duration').value;
+            const count = savedCount !== null ? savedCount : parseInt(document.getElementById('qty').value, 10);
+            
+            if (!subject) return alert('寫上科目名字！');
+
+            const id = savedId || 'tpl-' + Date.now() + Math.floor(Math.random()*100);
+            const color = getColorByDuration(duration);
+            const newTpl = document.createElement('div');
+            newTpl.className = `time-block h-${duration}`;
+            newTpl.id = id;
+            newTpl.style.backgroundColor = color;
+            newTpl.setAttribute('data-hours', duration);
+            newTpl.setAttribute('data-title', subject);
+            newTpl.setAttribute('data-count', count);
+            newTpl.setAttribute('data-is-template', 'true');
+
+            newTpl.innerHTML = `
+                <div class="block-meta">
+                    <span class="block-title">${subject} (${duration}h)</span>
+                    <button class="delete-btn" onclick="deleteTemplateElement(this)">×</button>
+                </div>
+                <div class="template-qty-control">
+                    <span>數量:</span>
+                    <input type="number" min="0" value="${count}" onchange="handleTemplateQtyChange(this)">
+                </div>
+            `;
+
+            attachDragEvents(newTpl);
+            document.getElementById('poolZone').appendChild(newTpl);
+            updateTemplateUI(newTpl);
+
+            if (!savedTitle) { 
+                document.getElementById('subject').value = '';
+                document.getElementById('qty').value = '1';
+                saveToLocalStorage();
+            }
+        }
+
+        function getColorByDuration(duration) {
+            switch (parseInt(duration, 10)) {
+                case 1: return '#00a8ff'; 
+                case 2: return '#fbc531'; 
+                case 3: return '#e84118'; 
+                default: return colors[Math.floor(Math.random() * colors.length)];
+            }
+        }
+
+        // 初始化與存檔邏輯
+        function saveToLocalStorage() {
+            const templates = [];
+            document.querySelectorAll('#poolZone .time-block[data-is-template="true"]').forEach(tpl => {
+                templates.push({
+                    id: tpl.id,
+                    title: tpl.getAttribute('data-title'),
+                    hours: tpl.getAttribute('data-hours'),
+                    count: parseInt(tpl.getAttribute('data-count'), 10)
+                });
+            });
+
+            const instances = [];
+            dayIds.forEach(dayId => {
+                const zone = document.getElementById(`zone-${dayId}`);
+                zone.querySelectorAll('.time-block').forEach(block => {
+                    instances.push({
+                        title: block.getAttribute('data-title'),
+                        hours: block.getAttribute('data-hours'),
+                        color: block.style.backgroundColor,
+                        top: parseInt(block.style.top, 10),
+                        day: dayId,
+                        fromTemplate: block.getAttribute('data-from-template')
+                    });
+                });
+            });
+
+            localStorage.setItem('time_blocks_state_v2', JSON.stringify({ templates, instances }));
+        }
+
+        function loadFromState(state) {
+            document.getElementById('poolZone').innerHTML = '<p style="font-size:0.7rem; color:#aaa; margin:0 0 5px 0; text-align:center; flex-shrink:0;">拖回此處回收數量</p>';
+            dayIds.forEach(dayId => document.getElementById(`zone-${dayId}`).innerHTML = '');
+
+            if (!state) return;
+
+            if (state.templates) {
+                state.templates.forEach(tpl => createNewTemplate(tpl.title, tpl.hours, tpl.count, tpl.id));
+            }
+            if (state.instances) {
+                state.instances.forEach(item => {
+                    const zone = document.getElementById(`zone-${item.day}`);
+                    if (zone) {
+                        const block = createInstanceBlock(item.title, item.hours, item.color, item.fromTemplate, item.top);
+                        zone.appendChild(block);
+                    }
+                });
+            }
+        }
+
+        function exportData() {
+            const localData = localStorage.getItem('time_blocks_state_v2') || '{}';
+            if (localData === '{}') return alert('空空如也，沒什麼好匯出的。');
+            const base64Code = btoa(unescape(encodeURIComponent(localData)));
+            navigator.clipboard.writeText(base64Code).then(() => alert('同步密鑰已複製到剪貼簿！')).catch(() => prompt('請手動複製代碼：', base64Code));
+        }
+
+        function importData() {
+            const code = prompt('請貼上同步代碼：');
+            if (!code) return;
+            try {
+                const decodedData = decodeURIComponent(escape(atob(code.trim())));
+                const parsed = JSON.parse(decodedData);
+                if (parsed.templates && parsed.instances) {
+                    loadFromState(parsed);
+                    saveToLocalStorage();
+                    alert('資料同步成功！');
+                }
+            } catch (e) { alert('解析失敗！'); }
+        }
+
+        window.onload = function() {
+            // 自動幫預設模板綁定拖曳事件
+            document.querySelectorAll('#poolZone .time-block').forEach(tpl => attachDragEvents(tpl));
+            
+            const saved = localStorage.getItem('time_blocks_state_v2');
+            if (saved) {
+                try { loadFromState(JSON.parse(saved)); } catch(e) { console.error(e); }
+            }
+        };
+    </script>
+</body>
+</html>
