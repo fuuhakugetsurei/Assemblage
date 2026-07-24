@@ -1,0 +1,20 @@
+name: Send README to Discord
+
+on:
+  push:
+    paths:
+      - 'README.md' # 只有當 README.md 被修改時才觸發
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Upload README.md to Discord
+        uses: sinshutu/upload-to-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          args: README.md # 自動將 README.md 檔案上傳至 Discord 頻道
