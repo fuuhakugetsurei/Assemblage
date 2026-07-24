@@ -1,4 +1,4 @@
-name: Send README to Discord
+name: Send README Text to Discord
 
 on:
   push:
@@ -6,15 +6,34 @@ on:
       - 'README.md' # 只有當 README.md 被修改時才觸發
 
 jobs:
-  deploy:
+  send-readme:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Upload README.md to Discord
-        uses: sinshutu/upload-to-discord@master
+      - name: Read README and Send to Discord
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        with:
-          args: README.md # 自動將 README.md 檔案上傳至 Discord 頻道
+        run: |
+          # 1. 讀取 README 內容，並將換行符號和引號做正確的 JSON 轉義（防範特殊字元出錯）
+          # 使用 node 腳本可以最完美地處理 Markdown 內的所有特殊符號、引號與斷行
+          node -e '
+            const fs = require("fs");
+            const readme = fs.readFileSync("README.md", "utf8");
+            
+            // 限制字數，避免超過 Discord 單則訊息 2000 字的上限
+            const truncated = readme.length > 1900 ? readme.substring(0, 1900) + "\n\n...(內容過長已截斷)..." : readme;
+            
+            // 建立 payload
+            const payload = JSON.stringify({ content: truncated });
+            
+            // 寫入臨時檔案供 curl 發送
+            fs.writeFileSync("payload.json", payload);
+          '
+
+          # 2. 將轉義後的 Markdown 文字透過 curl 直接發送至 Discord
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d @payload.json \
+               $DISCORD_WEBHOOK
