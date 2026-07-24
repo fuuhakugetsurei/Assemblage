@@ -50,7 +50,6 @@
 
 如果你在拼貼時間的過程中有任何想法、發現 Bug，或是希望加入更酷的功能，歡迎聯繫我或參與討論！
 
-* 🐛 **Report Issues**：歡迎直接提交 [GitHub Issues](https://www.google.com/search?q=https://github.com/%E4%BD%A0%E7%9A%84GitHub%E5%B8%B3%E8%99%9F/time-block-schedule/issues)
+* 🐛 **Report Issues**：歡迎直接提交 [GitHub Issues](https://github.com/fuuhakugetsurei/Assemblage/issues)
 * 🗣️ **Discord 社群 / 交流**：
-* **Discord Username**：`你的DC帳號名稱` (例如：`user#1234` 或 `username`)
-* **Discord Server**：[點此加入交流伺服器](https://www.google.com/search?q=https://discord.gg/%E4%BD%A0%E7%9A%84%E9%82%80%E8%AB%8B%E9%80%A3%E7%B5%90) *(如果沒有伺服器可以只留個人 ID)*
+* **Discord Server**：[點此加入交流伺服器](https://discord.gg/kpsA7ZutU3)
